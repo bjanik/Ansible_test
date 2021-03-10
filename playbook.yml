@@ -1,0 +1,48 @@
+---
+- name: Set up dependencies
+  hosts: vmaddress
+  tasks:
+    - name: Install pip3
+      become: yes
+      become_method: su
+      become_user: root
+      apt:
+        name: python3-pip
+        state: present
+    
+    - name: Install postgres
+      become: yes
+      become_method: su
+      become_user: root
+      apt:
+        name: 
+          - postgresql
+        state: present
+
+    - name: Install flask
+      pip:
+        name:
+          - flask
+          - psycopg2-binary
+        executable: pip3
+
+- name: Copy app
+  hosts: vmaddress
+  tasks:
+    - name: Copy app
+      copy:
+        src: ./app
+        dest: $HOME
+
+- name: Start flask
+  hosts: vmaddress
+  tasks:
+    - name: Launch flask
+      shell: python3 app.py
+      args:
+        chdir: ~/app
+      environment:
+        FLASK_APP: app.py
+        FLASK_RUN_PORT: 4000
+        LC_ALL: en_US.utf-8
+        LANG: en_US.utf-8
