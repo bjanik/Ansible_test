@@ -1,48 +1,52 @@
 ---
 - name: Set up dependencies
-  hosts: vmaddress
+  hosts: vmadd
+  become: yes
+  become_method: sudo
+  become_user: root
+  remote_user: bart
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
   tasks:
-    - name: Install pip3
-      become: yes
-      become_method: su
-      become_user: root
+    - name: Install postgresql and pip3
       apt:
-        name: python3-pip
-        state: present
-    
-    - name: Install postgres
-      become: yes
-      become_method: su
-      become_user: root
-      apt:
-        name: 
+        update_cache: yes
+        name:
           - postgresql
-        state: present
+          - python3-pip
+          - libpq-dev
+        state: latest
 
-    - name: Install flask
+    - name: Install flask dot-env and psycopg2
       pip:
         name:
+          - python-dotenv
           - flask
-          - psycopg2-binary
+          - psycopg2
         executable: pip3
 
-- name: Copy app
-  hosts: vmaddress
-  tasks:
     - name: Copy app
       copy:
         src: ./app
-        dest: $HOME
+        dest: /home/bart
+    
+    - name: Create user
+      become: yes
+      become_user: postgres
+      postgresql_user:
+        name: "bart"
+        password: "psql123"
 
-- name: Start flask
-  hosts: vmaddress
-  tasks:
-    - name: Launch flask
+    - name: Create database
+      become: yes
+      become_user: postgres
+      postgresql_db:
+        name: "my_db"
+        owner: "bart"
+
+    - name: Start flask
       shell: python3 app.py
       args:
-        chdir: ~/app
+        chdir: /home/bart/app
       environment:
-        FLASK_APP: app.py
         FLASK_RUN_PORT: 4000
-        LC_ALL: en_US.utf-8
-        LANG: en_US.utf-8
